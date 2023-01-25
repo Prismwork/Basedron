@@ -1,0 +1,43 @@
+{
+	"schema_version": 1,
+	"quilt_loader": {
+		"group": "io.github.prismwork",
+		"id": "basedron",
+		"version": "${version}",
+		"metadata": {
+			"name": "Basedron\u2122",
+			"description": "Cauldron but based",
+			"contributors": {
+				"Prismwork": "Owner",
+				"pkstDev": "Developer",
+				"Irisflow": "Mascot"
+			},
+			"contact": {
+				"homepage": "https://example.com/",
+				"issues": "https://github.com/QuiltMC/quilt-template-mod/issues",
+				"sources": "https://github.com/QuiltMC/quilt-template-mod"
+			},
+			"icon": "assets/basedron/icon.png"
+		},
+		"intermediate_mappings": "net.fabricmc:intermediary",
+		"entrypoints": {
+			"init": "io.github.prismwork.basedron.Basedron",
+			"client_init": "io.github.prismwork.basedron.BasedronClient"
+		},
+		"depends": [
+			{
+				"id": "quilt_loader",
+				"versions": ">=0.17.6-"
+			},
+			{
+				"id": "quilted_fabric_api",
+				"versions": ">=5.0.0-"
+			},
+			{
+				"id": "minecraft",
+				"versions": ">=1.19.3"
+			}
+		]
+	},
+	"mixin": "basedron.mixins.json"
+}
