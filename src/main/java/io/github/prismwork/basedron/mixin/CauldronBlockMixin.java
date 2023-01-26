@@ -1,14 +1,11 @@
 package io.github.prismwork.basedron.mixin;
 
 import io.github.prismwork.basedron.Basedron;
+import io.github.prismwork.basedron.api.CauldronInteractionEvent;
 import io.github.prismwork.basedron.block.CauldronBlockEntity;
 import io.github.prismwork.basedron.util.BlockEntityHelper;
-import net.fabricmc.fabric.api.transfer.v1.context.ContainerItemContext;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
-import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
-import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
-import net.fabricmc.fabric.api.transfer.v1.storage.StorageUtil;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
 import net.minecraft.block.*;
 import net.minecraft.block.cauldron.CauldronBehavior;
@@ -20,12 +17,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsage;
-import net.minecraft.item.Items;
 import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -73,69 +65,7 @@ public abstract class CauldronBlockMixin extends AbstractCauldronBlock
 	public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
 		BlockEntity be = world.getBlockEntity(pos);
 		if (be instanceof CauldronBlockEntity cauldron) {
-			ItemStack stack = player.getStackInHand(hand);
-			Storage<FluidVariant> another = FluidStorage.ITEM.find(
-					stack,
-					ContainerItemContext.forPlayerInteraction(player, hand)
-			);
-			if (another != null) {
-				another.iterator().forEachRemaining(view -> {
-					if (!view.isResourceBlank()) {
-						try (Transaction transaction = Transaction.openOuter()) {
-							long actualExtract = StorageUtil.move(
-									another,
-									cauldron.fluidStorage,
-									fluidVariant -> view.getResource().equals(cauldron.fluidStorage.variant) ||
-											cauldron.fluidStorage.isResourceBlank(),
-									FluidConstants.BUCKET,
-									transaction
-							);
-							if (actualExtract > 0) {
-								world.playSound(
-										null,
-										pos,
-										SoundEvents.ITEM_BUCKET_EMPTY,
-										SoundCategory.BLOCKS
-								);
-								transaction.commit();
-							}
-						}
-					} else {
-						if (!cauldron.fluidStorage.variant.isOf(Basedron.POWDER_SNOW)) {
-							try (Transaction transaction = Transaction.openOuter()) {
-								long actualExtract = StorageUtil.move(
-										cauldron.fluidStorage,
-										another,
-										fluidVariant -> !cauldron.fluidStorage.isResourceBlank(),
-										FluidConstants.BUCKET,
-										transaction
-								);
-								if (actualExtract > 0) {
-									world.playSound(
-											null,
-											pos,
-											SoundEvents.ITEM_BUCKET_EMPTY,
-											SoundCategory.BLOCKS
-									);
-									transaction.commit();
-								}
-							}
-						} else {
-							if (cauldron.fluidStorage.getAmount() >= FluidConstants.BUCKET) {
-								cauldron.fluidStorage.amount = 0;
-								cauldron.fluidStorage.variant = FluidVariant.blank();
-								ItemStack newStack = new ItemStack(Items.POWDER_SNOW_BUCKET);
-								if (stack.getNbt() != null) {
-									newStack.writeNbt(stack.getNbt());
-								}
-								ItemUsage.exchangeStack(stack, player, newStack);
-							}
-						}
-					}
-				});
-				world.updateListeners(pos, state, state, Block.NOTIFY_LISTENERS);
-				return ActionResult.CONSUME;
-			}
+			return CauldronInteractionEvent.INSTANCE.invoker().interact(cauldron, player, hand, hit);
 		}
 		return ActionResult.PASS;
 	}
@@ -149,7 +79,7 @@ public abstract class CauldronBlockMixin extends AbstractCauldronBlock
 		BlockEntity be = world.getBlockEntity(pos);
 		if (be instanceof CauldronBlockEntity cauldron) {
 			try (Transaction transaction = Transaction.openOuter()) {
-				long actualInsert = cauldron.fluidStorage.insert(FluidVariant.of(fluid), FluidConstants.DROPLET, transaction);
+				long actualInsert = cauldron.getFluidStorage().insert(FluidVariant.of(fluid), FluidConstants.DROPLET, transaction);
 				if (actualInsert > 0) transaction.commit();
 			}
 			world.emitGameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.create(state));
@@ -170,14 +100,22 @@ public abstract class CauldronBlockMixin extends AbstractCauldronBlock
 			if (canFillWithPrecipitation(world, precipitation)) {
 				if (precipitation == Biome.Precipitation.RAIN) {
 					try (Transaction transaction = Transaction.openOuter()) {
-						long actualInsert = cauldron.fluidStorage.insert(FluidVariant.of(Fluids.WATER), FluidConstants.BOTTLE, transaction);
+						long actualInsert = cauldron.getFluidStorage().insert(
+								FluidVariant.of(Fluids.WATER),
+								FluidConstants.BOTTLE,
+								transaction
+						);
 						if (actualInsert > 0) transaction.commit();
 					}
 					world.emitGameEvent(null, GameEvent.BLOCK_CHANGE, pos);
 					world.updateListeners(pos, state, state, Block.NOTIFY_LISTENERS);
 				} else if (precipitation == Biome.Precipitation.SNOW) {
 					try (Transaction transaction = Transaction.openOuter()) {
-						long actualInsert = cauldron.fluidStorage.insert(FluidVariant.of(Basedron.POWDER_SNOW), FluidConstants.BOTTLE, transaction);
+						long actualInsert = cauldron.getFluidStorage().insert(
+								FluidVariant.of(Basedron.POWDER_SNOW),
+								FluidConstants.BOTTLE,
+								transaction
+						);
 						if (actualInsert > 0) transaction.commit();
 					}
 					world.emitGameEvent(null, GameEvent.BLOCK_CHANGE, pos);
@@ -194,11 +132,11 @@ public abstract class CauldronBlockMixin extends AbstractCauldronBlock
 			if (this.isEntityTouchingFluid(state, pos, entity)){
 				BlockEntity be = world.getBlockEntity(pos);
 				if (be instanceof CauldronBlockEntity cauldron) {
-					if (cauldron.fluidStorage.variant.getFluid().isIn(FluidTags.WATER) && entity.isOnFire()) {
+					if (cauldron.getFluidStorage().variant.getFluid().isIn(FluidTags.WATER) && entity.isOnFire()) {
 						basedron$extinguishEntity(world, pos, entity, cauldron);
-					} else if (cauldron.fluidStorage.variant.getFluid().isIn(FluidTags.LAVA)) {
+					} else if (cauldron.getFluidStorage().variant.getFluid().isIn(FluidTags.LAVA)) {
 						entity.setOnFireFromLava();
-					} else if (cauldron.fluidStorage.variant.isOf(Basedron.POWDER_SNOW)) {
+					} else if (cauldron.getFluidStorage().variant.isOf(Basedron.POWDER_SNOW)) {
 						if (entity.isOnFire()) {
 							basedron$extinguishEntity(world, pos, entity, cauldron);
 						}
@@ -212,8 +150,8 @@ public abstract class CauldronBlockMixin extends AbstractCauldronBlock
 
 	private void basedron$extinguishEntity(World world, BlockPos pos, Entity entity, CauldronBlockEntity cauldron) {
 		try (Transaction transaction = Transaction.openOuter()) {
-			long consumed = cauldron.fluidStorage.extract(
-					cauldron.fluidStorage.getResource(),
+			long consumed = cauldron.getFluidStorage().extract(
+					cauldron.getFluidStorage().getResource(),
 					FluidConstants.BOTTLE,
 					transaction
 			);

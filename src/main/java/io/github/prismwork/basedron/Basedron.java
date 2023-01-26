@@ -1,7 +1,9 @@
 package io.github.prismwork.basedron;
 
 import io.github.prismwork.basedron.block.CauldronBlockEntity;
+import io.github.prismwork.basedron.block.fluid.ColoredWaterFluid;
 import io.github.prismwork.basedron.block.fluid.PowderSnowFluid;
+import io.github.prismwork.basedron.util.Constants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
@@ -23,6 +25,7 @@ import org.slf4j.LoggerFactory;
 public class Basedron implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("Basedron");
 	public static final Fluid POWDER_SNOW = new PowderSnowFluid();
+	public static final Fluid COLORED_WATER = new ColoredWaterFluid();
 	public static final BlockEntityType<CauldronBlockEntity> CAULDRON = QuiltBlockEntityTypeBuilder.create(CauldronBlockEntity::new, Blocks.CAULDRON).build();
 
 	@Override
@@ -33,14 +36,22 @@ public class Basedron implements ModInitializer {
 				POWDER_SNOW
 		);
 		Registry.register(
+				Registries.FLUID,
+				new Identifier(Constants.MODID, "colored_water"),
+				COLORED_WATER
+		);
+		Registry.register(
 				Registries.BLOCK_ENTITY_TYPE,
-				new Identifier("basedron", "cauldron"),
+				new Identifier(Constants.MODID, "cauldron"),
 				CAULDRON
 		);
 		FluidStorage.SIDED.registerForBlockEntity((cauldron, direction) -> {
-			if (!direction.equals(Direction.UP) && !direction.equals(Direction.DOWN)) {
-				return cauldron.fluidStorage;
-			} else return null;
+			if (!cauldron.getFluidStorage().variant.isOf(COLORED_WATER)) {
+				if (!direction.equals(Direction.UP) && !direction.equals(Direction.DOWN)) {
+					return cauldron.getFluidStorage();
+				}
+			}
+			return null;
 		}, CAULDRON);
 		FluidStorage.combinedItemApiProvider(Items.POWDER_SNOW_BUCKET).register(ctx ->
 				new FullItemFluidStorage(

@@ -22,7 +22,8 @@
 		"intermediate_mappings": "net.fabricmc:intermediary",
 		"entrypoints": {
 			"init": "io.github.prismwork.basedron.Basedron",
-			"client_init": "io.github.prismwork.basedron.BasedronClient"
+			"client_init": "io.github.prismwork.basedron.BasedronClient",
+			"events": "io.github.prismwork.basedron.event.CauldronInteractionImpl"
 		},
 		"depends": [
 			{

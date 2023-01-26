@@ -1,6 +1,7 @@
 package io.github.prismwork.basedron;
 
-import io.github.prismwork.basedron.client.block.CauldronBlockEntityRenderer;
+import io.github.prismwork.basedron.client.render.block.CauldronBlockEntityRenderer;
+import io.github.prismwork.basedron.client.util.ColoredWaterFluidRenderHandler;
 import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry;
 import net.fabricmc.fabric.api.client.render.fluid.v1.SimpleFluidRenderHandler;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
@@ -16,6 +17,7 @@ public class BasedronClient implements ClientModInitializer {
 				new Identifier("minecraft:block/powder_snow"),
 				0xFFFFFF
 		));
+		FluidRenderHandlerRegistry.INSTANCE.register(Basedron.COLORED_WATER, new ColoredWaterFluidRenderHandler());
 		BlockEntityRendererFactories.register(Basedron.CAULDRON, CauldronBlockEntityRenderer::new);
 	}
 }

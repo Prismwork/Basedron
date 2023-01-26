@@ -1,4 +1,4 @@
-package io.github.prismwork.basedron.client.block;
+package io.github.prismwork.basedron.client.render.block;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.prismwork.basedron.block.CauldronBlockEntity;
@@ -31,8 +31,8 @@ public class CauldronBlockEntityRenderer implements BlockEntityRenderer<Cauldron
 					   VertexConsumerProvider vertexConsumers,
 					   int light,
 					   int overlay) {
-		Sprite sprite = FluidVariantRendering.getSprite(entity.fluidStorage.variant);
-		int color = FluidVariantRendering.getColor(entity.fluidStorage.variant);
+		Sprite sprite = FluidVariantRendering.getSprite(entity.getFluidStorage().variant);
+		int color = FluidVariantRendering.getColor(entity.getFluidStorage().variant, entity.getWorld(), entity.getPos());
 		float r = ((color >> 16) & 255) / 256f;
 		float g = ((color >> 8) & 255) / 256f;
 		float b = (color & 255) / 256f;

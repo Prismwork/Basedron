@@ -3,8 +3,13 @@ plugins {
 	alias libs.plugins.quilt.loom
 }
 
+def calendar = Calendar.getInstance();
+def time = String.format("%d%02d%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH));
+
+String suffix = project.archives_base_name.endsWith("-dev") ?: "." + time
+
 archivesBaseName = project.archives_base_name
-version = "${project.version}+${libs.versions.minecraft.get()}"
+version =  "${project.version}${suffix}+${libs.versions.minecraft.get()}"
 group = project.maven_group
 
 repositories {
@@ -65,8 +70,8 @@ java {
 
 // If you plan to use a different file for the license, don't forget to change the file name here!
 jar {
-	from('LICENSE') {
-		rename { "${it}_${archivesBaseName}" }
+	from('LICENSE.md') {
+		rename { "LICENSE_${archivesBaseName}.md" }
 	}
 }
 
@@ -80,9 +85,26 @@ publishing {
 
 	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
 	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
+		mavenLocal()
+		if (System.getenv("MAVEN_USERNAME") != null && System.getenv("MAVEN_PASSWORD") != null) {
+			maven {
+				name = "release"
+				url = "https://maven.nova-committee.cn/releases"
+
+				credentials {
+					username = System.getenv("MAVEN_USERNAME")
+					password = System.getenv("MAVEN_PASSWORD")
+				}
+			}
+			maven {
+				name = "snapshot"
+				url = "https://maven.nova-committee.cn/snapshots"
+
+				credentials {
+					username = System.getenv("MAVEN_USERNAME")
+					password = System.getenv("MAVEN_PASSWORD")
+				}
+			}
+		}
 	}
 }
